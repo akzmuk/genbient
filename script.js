@@ -57,6 +57,9 @@ async function startAudio() {
 
 // Progression state variables
 let isPlaying = false;
+let hasStarted = false;
+let chordHistory = [];
+let currentChordIndex = -1;
 let currentChord = null;
 let progressionTimer = null;
 let CHORD_DURATION = 3000; // 3 seconds per chord initially (60 BPM)
@@ -216,11 +219,15 @@ function playChord(degrees) {
 
 // Function to get a new chord from the API
 async function getNewChord() {
+    // Show the spinner
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('chordName').style.display = 'none';
+    
     try {
         // Update status to show loading
         document.getElementById('chordName').textContent = 'Loading...';
 
-        const response = await fetch('http://127.0.0.1/start_new/', {
+        const response = await fetch('https://chordgen-uxfa.onrender.com/start_new/', {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -244,6 +251,10 @@ async function getNewChord() {
         console.error('Error fetching chord:', error);
         document.getElementById('chordName').textContent = 'Error: Could not fetch chord';
         stopProgression();
+    } finally {
+        // Hide the spinner and show the chord name again
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('chordName').style.display = 'block';
     }
 }
 
@@ -290,7 +301,7 @@ function stopProgression() {
     
     isPlaying = false;
     const toggleBtn = document.getElementById('toggleBtn');
-    toggleBtn.textContent = 'Start';
+    toggleBtn.textContent = 'Continue';
     toggleBtn.classList.remove('stop');
     
     // Clear all timers
@@ -303,20 +314,17 @@ function stopProgression() {
     synth.releaseAll();
     currentNotes = [];
     lastChordString = "";
-    
-    // Reset progression history
-    progressionHistory = "";
 }
 
 // Function to generate next chord in progression
 async function generateNextChord(seedProgression) {
     try {
-        const response = await fetch('http://127.0.0.1/generate_progression_with_seed/', {
+        const response = await fetch('https://chordgen-uxfa.onrender.com/generate_progression_with_seed/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Origin': 'http://localhost:8000'
+                'Origin': 'https://chordgen-uxfa.onrender.com'
             },
             mode: 'cors',
             body: JSON.stringify({
@@ -358,10 +366,69 @@ async function generateNextChord(seedProgression) {
 }
 
 // Add event listener to the button
-document.getElementById('toggleBtn').addEventListener('click', () => {
-    if (isPlaying) {
-        stopProgression();
-    } else {
+document.getElementById('toggleBtn').addEventListener('click', function() {
+    if (!hasStarted) {
+        // First time starting
         startProgression();
+        toggleBtn.textContent = 'Stop';
+        hasStarted = true;
+        isPlaying = true;
+    } else if (isPlaying) {
+        // Currently playing, so stop
+        stopProgression();
+        toggleBtn.textContent = 'Continue';
+        isPlaying = false;
+    } else {
+        // Currently stopped, so continue
+        continueProgression();
+        toggleBtn.textContent = 'Stop';
+        isPlaying = true;
     }
 });
+
+// Function to continue the progression from where it left off
+function continueProgression() {
+    if (isPlaying) return;
+    
+    // Ensure audio context is started
+    startAudio();
+    
+    isPlaying = true;
+    const toggleBtn = document.getElementById('toggleBtn');
+    toggleBtn.textContent = 'Stop';
+    toggleBtn.classList.add('stop');
+    
+    // If we have a current chord, play it
+    if (currentChord) {
+        playChord(currentChord.degrees);
+        
+        // Restart the progression timer
+        progressionTimer = setInterval(() => {
+            if (currentChord) {
+                generateNextChord(progressionHistory);
+            }
+        }, CHORD_DURATION);
+    } else if (progressionHistory) {
+        // If we have history but no current chord, generate a new one based on history
+        generateNextChord(progressionHistory);
+        
+        // Then start the timer
+        progressionTimer = setInterval(() => {
+            generateNextChord(progressionHistory);
+        }, CHORD_DURATION);
+    } else {
+        // If we have neither, start fresh
+        startProgression();
+    }
+}
+
+// Modify your chord generation/display function to store history
+function displayNewChord(chord) {
+    // Add to history
+    chordHistory.push(chord);
+    currentChordIndex = chordHistory.length - 1;
+    
+    // Your existing code to display the chord
+    document.getElementById('chordName').textContent = chord;
+    // Other display code...
+}
