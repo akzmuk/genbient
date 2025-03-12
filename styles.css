@@ -593,3 +593,43 @@ button#toggleBtn.stop:hover {
         margin-bottom: 10px;
     }
 }
+
+/* Expander sections */
+.expander-header {
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.expander-toggle {
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #2c3e50;
+    transition: background-color 0.2s;
+}
+
+.expander-toggle:hover {
+    background-color: #e0e0e0;
+}
+
+.expander-content {
+    padding: 10px;
+    border-left: 2px solid #f0f0f0;
+    margin-left: 5px;
+    overflow: hidden;
+    max-height: 1000px;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.expander-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}

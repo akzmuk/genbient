@@ -117,33 +117,68 @@
                     <h3 class="section-title">Sound Controls</h3>
 
                     <div class="control-group">
-                        <label for="waveformSelect">Waveform:</label>
-                        <select id="waveformSelect">
-                            <option value="sine">Sine</option>
-                            <option value="triangle">Triangle</option>
-                            <option value="square">Square</option>
-                            <option value="sawtooth" selected>Sawtooth</option>
-                        </select>
-                    </div>
-                    
-                    <div class="control-group">
-                        <label for="octaveSlider">Octave: <span id="octaveValue" class="value-display">0</span></label>
-                        <input type="range" id="octaveSlider" min="-1" max="1" step="1" value="0" class="slider">
-                    </div>
-                    
-                    <div class="control-group">
                         <label for="tempoSlider">Tempo: <span id="tempoValue" class="value-display">20</span> BPM</label>
                         <input type="range" id="tempoSlider" min="10" max="40" value="20" class="slider">
                     </div>
-                    
-                    <div class="control-group">
-                        <label for="reverbSlider">Reverb: <span id="reverbValue" class="value-display">60</span>%</label>
-                        <input type="range" id="reverbSlider" min="0" max="100" value="60" class="slider">
+
+                    <div class="control-group expander-header">
+                        <button class="expander-toggle" data-target="oscillator1Controls">Oscillator 1 ▾</button>
                     </div>
-                    
-                    <div class="control-group">
-                        <label for="filterSlider">Lowpass Filter: <span id="filterValue" class="value-display">641</span> Hz</label>
-                        <input type="range" id="filterSlider" min="100" max="15000" value="641" class="slider">
+                    <div class="expander-content" id="oscillator1Controls">
+                        <div class="control-group">
+                            <label for="waveformSelect">Waveform:</label>
+                            <select id="waveformSelect">
+                                <option value="sine">Sine</option>
+                                <option value="triangle">Triangle</option>
+                                <option value="square">Square</option>
+                                <option value="sawtooth" selected>Sawtooth</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="octaveSlider">Octave: <span id="octaveValue" class="value-display">0</span></label>
+                            <input type="range" id="octaveSlider" min="-1" max="1" step="1" value="0" class="slider">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="reverbSlider1">Reverb: <span id="reverbValue1" class="value-display">60</span>%</label>
+                            <input type="range" id="reverbSlider1" min="0" max="100" value="60" class="slider">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="filterSlider1">Lowpass Filter: <span id="filterValue1" class="value-display">641</span> Hz</label>
+                            <input type="range" id="filterSlider1" min="100" max="15000" value="641" class="slider">
+                        </div>
+                    </div>
+
+                    <div class="control-group expander-header">
+                        <button class="expander-toggle" data-target="oscillator2Controls">Oscillator 2 ▾</button>
+                    </div>
+                    <div class="expander-content" id="oscillator2Controls">
+                        <div class="control-group">
+                            <label for="waveformSelect2">Waveform:</label>
+                            <select id="waveformSelect2">
+                                <option value="sine" selected>Sine</option>
+                                <option value="triangle">Triangle</option>
+                                <option value="square">Square</option>
+                                <option value="sawtooth">Sawtooth</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="octaveSlider2">Octave: <span id="octaveValue2" class="value-display">-1</span></label>
+                            <input type="range" id="octaveSlider2" min="-1" max="1" step="1" value="-1" class="slider">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="reverbSlider2">Reverb: <span id="reverbValue2" class="value-display">60</span>%</label>
+                            <input type="range" id="reverbSlider2" min="0" max="100" value="60" class="slider">
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="filterSlider2">Lowpass Filter: <span id="filterValue2" class="value-display">641</span> Hz</label>
+                            <input type="range" id="filterSlider2" min="100" max="15000" value="641" class="slider">
+                        </div>
                     </div>
                 </div>
             </div>

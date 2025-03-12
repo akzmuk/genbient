@@ -12,44 +12,320 @@ for (let i = 0; i < 12; i++) {
     keyboard.appendChild(key);
 }
 
-// Initialize Tone.js effects
-// Create a reverb effect
-const reverb = new Tone.Reverb({
+// Initialize Tone.js effects for oscillator 1
+const reverb1 = new Tone.Reverb({
     decay: 3.0,
     wet: 0.6
 }).toDestination();
 
-// Create a filter effect
-const filter = new Tone.Filter({
+const filter1 = new Tone.Filter({
     frequency: 641,
     type: "lowpass",
     rolloff: -12
-}).connect(reverb);
+}).connect(reverb1);
 
-// When reverb is loaded, connect the synth
-reverb.generate().then(() => {
-    console.log("Reverb generated and ready");
+// Initialize Tone.js effects for oscillator 2
+const reverb2 = new Tone.Reverb({
+    decay: 3.0,
+    wet: 0.6
+}).toDestination();
+
+const filter2 = new Tone.Filter({
+    frequency: 641,
+    type: "lowpass",
+    rolloff: -12
+}).connect(reverb2);
+
+// Generate reverbs asynchronously
+Promise.all([reverb1.generate(), reverb2.generate()]).then(() => {
+    console.log("Reverbs generated and ready");
 });
 
-// Create the synth with improved envelope for better sustain
-const synth = new Tone.PolySynth(Tone.Synth, {
+// Create two separate synths for the oscillators
+const synth1 = new Tone.PolySynth(Tone.Synth, {
     oscillator: {
         type: "sawtooth"
     },
     envelope: {
-        attack: 0.05,
-        decay: 0.2,
-        sustain: 0.8,
-        release: 1.5
+        attack: 0.1,
+        decay: 0.3,
+        sustain: 0.7,
+        release: 2.0
     }
-}).connect(filter);
+}).connect(filter1);
 
-// Function to ensure audio context is started (needed due to browser autoplay policies)
-async function startAudio() {
-    if (Tone.context.state !== "running") {
-        await Tone.start();
-        console.log("Audio context started:", Tone.context.state);
+const synth2 = new Tone.PolySynth(Tone.Synth, {
+    oscillator: {
+        type: "sine" // Default to sine for more ambient sound
+    },
+    envelope: {
+        attack: 0.2,
+        decay: 0.4,
+        sustain: 0.8,
+        release: 3.0
     }
+}).connect(filter2);
+
+// Setup waveform controls
+const waveformSelect = document.getElementById('waveformSelect');
+waveformSelect.addEventListener('change', () => {
+    const waveform = waveformSelect.value;
+    synth1.set({
+        oscillator: {
+            type: waveform
+        }
+    });
+});
+
+const waveformSelect2 = document.getElementById('waveformSelect2');
+waveformSelect2.addEventListener('change', () => {
+    const waveform2 = waveformSelect2.value;
+    synth2.set({
+        oscillator: {
+            type: waveform2
+        }
+    });
+});
+
+// Setup octave controls
+const octaveSlider = document.getElementById('octaveSlider');
+const octaveValue = document.getElementById('octaveValue');
+let octaveShift = 0;
+
+octaveSlider.addEventListener('input', () => {
+    octaveShift = parseInt(octaveSlider.value);
+    octaveValue.textContent = octaveShift;
+    
+    if (currentChord && isPlaying) {
+        playChord(currentChord.degrees);
+    }
+});
+
+const octaveSlider2 = document.getElementById('octaveSlider2');
+const octaveValue2 = document.getElementById('octaveValue2');
+let octaveShift2 = -1; // Default octave shift for the second oscillator is -1
+
+octaveSlider2.addEventListener('input', () => {
+    octaveShift2 = parseInt(octaveSlider2.value);
+    octaveValue2.textContent = octaveShift2;
+    
+    if (currentChord && isPlaying) {
+        playChord(currentChord.degrees);
+    }
+});
+
+// Setup filter controls
+const filterSlider1 = document.getElementById('filterSlider1');
+const filterValue1 = document.getElementById('filterValue1');
+
+filterSlider1.addEventListener('input', () => {
+    const frequency = parseInt(filterSlider1.value);
+    filterValue1.textContent = frequency;
+    filter1.frequency.value = frequency;
+});
+
+const filterSlider2 = document.getElementById('filterSlider2');
+const filterValue2 = document.getElementById('filterValue2');
+
+filterSlider2.addEventListener('input', () => {
+    const frequency = parseInt(filterSlider2.value);
+    filterValue2.textContent = frequency;
+    filter2.frequency.value = frequency;
+});
+
+// Setup reverb controls
+const reverbSlider1 = document.getElementById('reverbSlider1');
+const reverbValue1 = document.getElementById('reverbValue1');
+
+reverbSlider1.addEventListener('input', () => {
+    const wetness = parseInt(reverbSlider1.value) / 100;
+    reverbValue1.textContent = reverbSlider1.value;
+    reverb1.wet.value = wetness;
+});
+
+const reverbSlider2 = document.getElementById('reverbSlider2');
+const reverbValue2 = document.getElementById('reverbValue2');
+
+reverbSlider2.addEventListener('input', () => {
+    const wetness = parseInt(reverbSlider2.value) / 100;
+    reverbValue2.textContent = reverbSlider2.value;
+    reverb2.wet.value = wetness;
+});
+
+// Setup expander toggles
+document.querySelectorAll('.expander-toggle').forEach(button => {
+    const targetId = button.dataset.target;
+    const targetElement = document.getElementById(targetId);
+    
+    // Initialize all sections as expanded
+    button.addEventListener('click', () => {
+        targetElement.classList.toggle('collapsed');
+        // Update toggle button text
+        if (targetElement.classList.contains('collapsed')) {
+            button.textContent = button.textContent.replace('▾', '▸');
+        } else {
+            button.textContent = button.textContent.replace('▸', '▾');
+        }
+    });
+});
+
+// Update playChord function to use both synths
+function playChord(degrees) {
+    // Convert degrees string to array if needed
+    let degreesArray;
+    if (typeof degrees === 'string') {
+        try {
+            degreesArray = JSON.parse(degrees);
+        } catch (e) {
+            console.error('Error parsing degrees:', e);
+            return;
+        }
+    } else {
+        degreesArray = degrees;
+    }
+    
+    // Reset active keys
+    document.querySelectorAll('.key').forEach(key => {
+        key.classList.remove('active');
+    });
+    
+    // Map degrees to note names for each synth
+    const notes1 = [];
+    const notes2 = [];
+    
+    degreesArray.forEach((degree, index) => {
+        if (degree === 1) {
+            // Convert index to note name with octave (C4 is middle C)
+            const baseOctave = 4;
+            const adjustedOctave1 = baseOctave + octaveShift;
+            const adjustedOctave2 = baseOctave + octaveShift2;
+            const noteName1 = noteNames[index] + adjustedOctave1;
+            const noteName2 = noteNames[index] + adjustedOctave2;
+            notes1.push(noteName1);
+            notes2.push(noteName2);
+            
+            // Highlight the active keys
+            const keyElement = document.querySelector(`.key[data-note="${index}"]`);
+            if (keyElement) {
+                keyElement.classList.add('active');
+            }
+        }
+    });
+
+    // Set volumes for each synth
+    const baseVolume = -18; // Lower base volume since we have two synths
+    // Calculate gain reduction
+    const gainReduction1 = Math.log2(notes1.length) * 3;
+    const gainReduction2 = Math.log2(notes2.length) * 3;
+    
+    synth1.volume.value = baseVolume - gainReduction1;
+    synth2.volume.value = baseVolume - gainReduction2;
+    
+    // Convert current notes to strings for comparison
+    const notesString1 = notes1.sort().join(',');
+    const notesString2 = notes2.sort().join(',');
+    const lastChordString1 = currentNotes.synth1 || "";
+    const lastChordString2 = currentNotes.synth2 || "";
+    
+    // Only trigger new notes if they're different
+    if (notesString1 !== lastChordString1) {
+        synth1.releaseAll();
+        synth1.triggerAttack(notes1);
+    }
+    
+    if (notesString2 !== lastChordString2) {
+        synth2.releaseAll();
+        synth2.triggerAttack(notes2);
+    }
+    
+    // Update current notes
+    currentNotes = {
+        synth1: notesString1,
+        synth2: notesString2
+    };
+}
+
+// Update stopProgression to release both synths
+function stopProgression() {
+    if (!isPlaying) return;
+    
+    isPlaying = false;
+    const toggleBtn = document.getElementById('toggleBtn');
+    toggleBtn.textContent = 'Continue';
+    toggleBtn.classList.remove('stop');
+    
+    // Store the current chord before stopping
+    lastPlayedChord = currentChord;
+    
+    // Clear all timers
+    if (progressionTimer) {
+        clearInterval(progressionTimer);
+        progressionTimer = null;
+    }
+    
+    // Stop all sounds with a gentle release
+    synth1.releaseAll();
+    synth2.releaseAll();
+    currentNotes = { synth1: "", synth2: "" };
+}
+
+// Update resetControlsToDefaults to handle all new controls
+function resetControlsToDefaults() {
+    // Reset waveform 1
+    waveformSelect.value = 'sawtooth';
+    synth1.set({
+        oscillator: {
+            type: 'sawtooth'
+        }
+    });
+    
+    // Reset waveform 2
+    waveformSelect2.value = 'sine';
+    synth2.set({
+        oscillator: {
+            type: 'sine'
+        }
+    });
+    
+    // Reset tempo
+    tempoSlider.value = 20;
+    tempoValue.textContent = 20;
+    CHORD_DURATION = Math.round(60000 / 20);
+    
+    // Reset reverb 1
+    reverbSlider1.value = 60;
+    reverbValue1.textContent = 60;
+    reverb1.wet.value = 0.6;
+    
+    // Reset reverb 2
+    reverbSlider2.value = 60;
+    reverbValue2.textContent = 60;
+    reverb2.wet.value = 0.6;
+    
+    // Reset filter 1
+    filterSlider1.value = 641;
+    filterValue1.textContent = 641;
+    filter1.frequency.value = 641;
+    
+    // Reset filter 2
+    filterSlider2.value = 641;
+    filterValue2.textContent = 641;
+    filter2.frequency.value = 641;
+    
+    // Reset temperature
+    temperatureSlider.value = 1.0;
+    temperatureValue.textContent = '1.0';
+    temperature = 1.0;
+    
+    // Reset octave 1
+    octaveSlider.value = 0;
+    octaveValue.textContent = '0';
+    octaveShift = 0;
+    
+    // Reset octave 2
+    octaveSlider2.value = -1;
+    octaveValue2.textContent = '-1';
+    octaveShift2 = -1;
 }
 
 // Progression state variables
@@ -60,8 +336,9 @@ let currentChordIndex = -1;
 let currentChord = null;
 let progressionTimer = null;
 let CHORD_DURATION = 3000; // 3 seconds per chord initially (60 BPM)
-let currentNotes = []; // Store currently playing notes
-let lastChordString = ""; // Store string representation of last chord for comparison
+let currentNotes = { synth1: "", synth2: "" }; // Store currently playing notes
+let lastChordString1 = ""; // Store string representation of last chord for comparison
+let lastChordString2 = ""; // Store string representation of last chord for comparison
 let progressionHistory = ""; // Store the entire progression history
 let temperature = 1.0; // Default temperature value
 
@@ -108,39 +385,6 @@ tempoSlider.addEventListener('input', () => {
     }
 });
 
-// Setup waveform selector
-const waveformSelect = document.getElementById('waveformSelect');
-
-waveformSelect.addEventListener('change', () => {
-    const waveform = waveformSelect.value;
-    // Update the synth's oscillator type
-    synth.set({
-        oscillator: {
-            type: waveform
-        }
-    });
-});
-
-// Setup reverb control
-const reverbSlider = document.getElementById('reverbSlider');
-const reverbValue = document.getElementById('reverbValue');
-
-reverbSlider.addEventListener('input', () => {
-    const wetness = parseInt(reverbSlider.value) / 100;
-    reverbValue.textContent = reverbSlider.value;
-    reverb.wet.value = wetness;
-});
-
-// Setup filter control
-const filterSlider = document.getElementById('filterSlider');
-const filterValue = document.getElementById('filterValue');
-
-filterSlider.addEventListener('input', () => {
-    const frequency = parseInt(filterSlider.value);
-    filterValue.textContent = frequency;
-    filter.frequency.value = frequency;
-});
-
 // Setup temperature control
 const temperatureSlider = document.getElementById('temperatureSlider');
 const temperatureValue = document.getElementById('temperatureValue');
@@ -159,8 +403,8 @@ applySeedBtn.addEventListener('click', () => {
     
     if (!customSeed) {
         alert('Please enter a custom seed progression');
-        return;
-    }
+            return;
+        }
     
     applyCustomSeed(customSeed);
 });
@@ -274,91 +518,6 @@ async function generateFirstChordFromSeed(seed) {
     }
 }
 
-// Setup octave control
-const octaveSlider = document.getElementById('octaveSlider');
-const octaveValue = document.getElementById('octaveValue');
-let octaveShift = 0; // Default octave shift
-
-octaveSlider.addEventListener('input', () => {
-    octaveShift = parseInt(octaveSlider.value);
-    octaveValue.textContent = octaveShift;
-    
-    // If there's a current chord playing, update it with the new octave
-    if (currentChord && isPlaying) {
-        playChord(currentChord.degrees);
-    }
-});
-
-// Modify the playChord function to use the octave shift
-function playChord(degrees) {
-    // Convert degrees string to array if needed
-    let degreesArray;
-    if (typeof degrees === 'string') {
-        try {
-            degreesArray = JSON.parse(degrees);
-        } catch (e) {
-            console.error('Error parsing degrees:', e);
-            return;
-        }
-    } else {
-        degreesArray = degrees;
-    }
-    
-    // Reset active keys
-    document.querySelectorAll('.key').forEach(key => {
-        key.classList.remove('active');
-    });
-    
-    // Map degrees to note names
-    const notes = [];
-    
-    degreesArray.forEach((degree, index) => {
-        if (degree === 1) {
-            // Convert index to note name with octave (C4 is middle C)
-            // Apply the octave shift
-            const baseOctave = 4;
-            const adjustedOctave = baseOctave + octaveShift;
-            const noteName = noteNames[index] + adjustedOctave;
-            notes.push(noteName);
-            
-            // Highlight the active keys
-            const keyElement = document.querySelector(`.key[data-note="${index}"]`);
-            if (keyElement) {
-                keyElement.classList.add('active');
-            }
-        }
-    });
-
-    // Calculate normalized gain based on number of notes
-    // Base volume for a single note
-    const baseVolume = -12; // in dB
-    // Calculate gain reduction based on number of notes (logarithmic scaling)
-    const gainReduction = Math.log2(notes.length) * 3; // 3 dB reduction per doubling of notes
-    const normalizedVolume = baseVolume - gainReduction;
-
-    // Set the synth volume
-    synth.volume.value = normalizedVolume;
-    
-    // Convert current notes to string for comparison
-    const notesString = notes.sort().join(',');
-    const isSameChord = notesString === lastChordString;
-    
-    console.log("Playing notes:", notes, isSameChord ? "(same as previous)" : "(new chord)");
-    
-    // Only trigger a new chord if it's different
-    if (!isSameChord) {
-        // Release any currently playing notes
-        synth.releaseAll();
-        
-        // Play the new chord
-        synth.triggerAttack(notes);
-        
-        // Update current notes
-        currentNotes = notes;
-        lastChordString = notesString;
-    }
-}
-
 // Function to get a new chord from the API
 async function getNewChord() {
     // Show the spinner
@@ -442,30 +601,6 @@ async function startProgression() {
     });
 }
 
-// Function to stop the progression
-function stopProgression() {
-    if (!isPlaying) return;
-    
-    isPlaying = false;
-    const toggleBtn = document.getElementById('toggleBtn');
-    toggleBtn.textContent = 'Continue';
-    toggleBtn.classList.remove('stop');
-    
-    // Store the current chord before stopping
-    lastPlayedChord = currentChord;
-    
-    // Clear all timers
-    if (progressionTimer) {
-        clearInterval(progressionTimer);
-        progressionTimer = null;
-    }
-    
-    // Stop all sounds with a gentle release
-    synth.releaseAll();
-    currentNotes = [];
-    lastChordString = "";
-}
-
 // Function to generate next chord in progression
 async function generateNextChord(seedProgression) {
     try {
@@ -528,42 +663,6 @@ function displayNewChord(chord) {
     // Your existing code to display the chord
     document.getElementById('chordName').textContent = chord;
     // Other display code...
-}
-
-// Function to reset all controls to their default values
-function resetControlsToDefaults() {
-    // Reset waveform
-    waveformSelect.value = 'sawtooth';
-    synth.set({
-        oscillator: {
-            type: 'sawtooth'
-        }
-    });
-    
-    // Reset tempo
-    tempoSlider.value = 20;
-    tempoValue.textContent = 20;
-    CHORD_DURATION = Math.round(60000 / 20);
-    
-    // Reset reverb
-    reverbSlider.value = 60;
-    reverbValue.textContent = 60;
-    reverb.wet.value = 0.6;
-    
-    // Reset filter
-    filterSlider.value = 641;
-    filterValue.textContent = 641;
-    filter.frequency.value = 641;
-    
-    // Reset temperature
-    temperatureSlider.value = 1.0;
-    temperatureValue.textContent = '1.0';
-    temperature = 1.0;
-    
-    // Reset octave
-    octaveSlider.value = 0;
-    octaveValue.textContent = '0';
-    octaveShift = 0;
 }
 
 // When the page loads, set the chord name to empty instead of "Press Start to begin"
@@ -638,3 +737,11 @@ document.getElementById('toggleBtn').addEventListener('click', function() {
         continueProgression();
     }
 });
+
+// Function to ensure audio context is started (needed due to browser autoplay policies)
+async function startAudio() {
+    if (Tone.context.state !== "running") {
+        await Tone.start();
+        console.log("Audio context started:", Tone.context.state);
+    }
+}
