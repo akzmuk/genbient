@@ -44,9 +44,6 @@ const synth = new Tone.PolySynth(Tone.Synth, {
     }
 }).connect(filter);
 
-// Add debugging to check if Tone.js is working
-console.log("Tone.js initialized:", Tone.context.state);
-
 // Function to ensure audio context is started (needed due to browser autoplay policies)
 async function startAudio() {
     if (Tone.context.state !== "running") {
@@ -67,6 +64,9 @@ let currentNotes = []; // Store currently playing notes
 let lastChordString = ""; // Store string representation of last chord for comparison
 let progressionHistory = ""; // Store the entire progression history
 let temperature = 1.0; // Default temperature value
+
+// Add a variable to store the last played chord before stopping
+let lastPlayedChord = null;
 
 // Setup control panel toggle
 const controlsToggle = document.getElementById('sidebarToggle');
@@ -150,7 +150,146 @@ temperatureSlider.addEventListener('input', () => {
     temperatureValue.textContent = temperature.toFixed(1);
 });
 
-// Function to play a chord based on degrees
+// Setup custom seed controls
+const customSeedInput = document.getElementById('customSeedInput');
+const applySeedBtn = document.getElementById('applySeedBtn');
+
+applySeedBtn.addEventListener('click', () => {
+    const customSeed = customSeedInput.value.trim();
+    
+    if (!customSeed) {
+        alert('Please enter a custom seed progression');
+        return;
+    }
+    
+    applyCustomSeed(customSeed);
+});
+
+// Function to apply a custom seed
+function applyCustomSeed(seed) {
+    if (isPlaying) {
+        // If progression is already playing, stop it first
+        stopProgression();
+        
+        // Update the history
+        progressionHistory = seed;
+        
+        // Clear the last played chord since we're changing the seed
+        lastPlayedChord = null;
+        
+        // Update button to "Start"
+        const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.textContent = 'Start';
+        toggleBtn.classList.remove('stop');
+        
+        // Reset playing state but keep hasStarted true
+        isPlaying = false;
+    } else if (hasStarted) {
+        // If progression was started but is currently stopped
+        progressionHistory = seed;
+        
+        // Clear the last played chord since we're changing the seed
+        lastPlayedChord = null;
+        
+        // Update the button to "Start" instead of "Continue"
+        const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.textContent = 'Start';
+    } else {
+        // If progression hasn't started yet, just set the seed
+        progressionHistory = seed;
+    }
+    
+    // Close the sidebar after applying
+    sidebar.classList.remove('open');
+    mainContent.classList.remove('sidebar-open');
+}
+
+// Function to generate the first chord from a custom seed
+async function generateFirstChordFromSeed(seed) {
+    // Show the spinner
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('chordName').style.display = 'none';
+    
+    try {
+        // Ensure audio context is started
+        await startAudio();
+        
+        isPlaying = true;
+        hasStarted = true;
+        const toggleBtn = document.getElementById('toggleBtn');
+        toggleBtn.textContent = 'Stop';
+        toggleBtn.classList.add('stop');
+        
+        const response = await fetch('https://chordgen-uxfa.onrender.com/generate_progression_with_seed/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': 'https://chordgen-uxfa.onrender.com'
+            },
+            mode: 'cors',
+            body: JSON.stringify({
+                seed_progression: seed,
+                num_chords: 1,
+                temperature: temperature,
+                glue_chords: false
+            })
+        });
+        
+        if (!response.ok) {
+            // Get the error details from the response
+            const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+            const errorMessage = errorData.detail || `HTTP error! Status: ${response.status}`;
+            
+            throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
+        console.log("Generated first chord from seed:", data);
+        
+        // We're expecting an array of chords, but we only requested one
+        const chordData = {
+            chord: data.generated_progression[0],
+            degrees: data.degrees[0]
+        };
+        
+        // Display and play the chord
+        displayAndPlayChord(chordData);
+        
+        // Schedule the progression loop
+        progressionTimer = setInterval(() => {
+            if (currentChord) {
+                generateNextChord(progressionHistory);
+            }
+        }, CHORD_DURATION);
+        
+    } catch (error) {
+        console.error('Error generating chord from seed:', error);
+        document.getElementById('chordName').textContent = `Error: ${error.message}`;
+        stopProgression();
+    } finally {
+        // Hide the spinner and show the chord name again
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('chordName').style.display = 'block';
+    }
+}
+
+// Setup octave control
+const octaveSlider = document.getElementById('octaveSlider');
+const octaveValue = document.getElementById('octaveValue');
+let octaveShift = 0; // Default octave shift
+
+octaveSlider.addEventListener('input', () => {
+    octaveShift = parseInt(octaveSlider.value);
+    octaveValue.textContent = octaveShift;
+    
+    // If there's a current chord playing, update it with the new octave
+    if (currentChord && isPlaying) {
+        playChord(currentChord.degrees);
+    }
+});
+
+// Modify the playChord function to use the octave shift
 function playChord(degrees) {
     // Convert degrees string to array if needed
     let degreesArray;
@@ -176,7 +315,10 @@ function playChord(degrees) {
     degreesArray.forEach((degree, index) => {
         if (degree === 1) {
             // Convert index to note name with octave (C4 is middle C)
-            const noteName = noteNames[index] + '4';
+            // Apply the octave shift
+            const baseOctave = 4;
+            const adjustedOctave = baseOctave + octaveShift;
+            const noteName = noteNames[index] + adjustedOctave;
             notes.push(noteName);
             
             // Highlight the active keys
@@ -267,6 +409,11 @@ function displayAndPlayChord(data) {
     
     // Play the chord
     playChord(data.degrees);
+    
+    // Update the visualization with the new chord
+    if (window.updateVisualization) {
+        window.updateVisualization(data.chord);
+    }
 }
 
 // Function to start the progression
@@ -304,6 +451,9 @@ function stopProgression() {
     toggleBtn.textContent = 'Continue';
     toggleBtn.classList.remove('stop');
     
+    // Store the current chord before stopping
+    lastPlayedChord = currentChord;
+    
     // Clear all timers
     if (progressionTimer) {
         clearInterval(progressionTimer);
@@ -336,7 +486,11 @@ async function generateNextChord(seedProgression) {
         });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            // Get the error details from the response
+            const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+            const errorMessage = errorData.detail || `HTTP error! Status: ${response.status}`;
+            
+            throw new Error(errorMessage);
         }
         
         const data = await response.json();
@@ -360,65 +514,8 @@ async function generateNextChord(seedProgression) {
         return chordData;
     } catch (error) {
         console.error('Error generating next chord:', error);
-        document.getElementById('chordName').textContent = 'Error: Could not generate next chord';
+        document.getElementById('chordName').textContent = `Error: ${error.message}`;
         stopProgression();
-    }
-}
-
-// Add event listener to the button
-document.getElementById('toggleBtn').addEventListener('click', function() {
-    if (!hasStarted) {
-        // First time starting
-        startProgression();
-        toggleBtn.textContent = 'Stop';
-        hasStarted = true;
-        isPlaying = true;
-    } else if (isPlaying) {
-        // Currently playing, so stop
-        stopProgression();
-        toggleBtn.textContent = 'Continue';
-        isPlaying = false;
-    } else {
-        // Currently stopped, so continue
-        continueProgression();
-        toggleBtn.textContent = 'Stop';
-        isPlaying = true;
-    }
-});
-
-// Function to continue the progression from where it left off
-function continueProgression() {
-    if (isPlaying) return;
-    
-    // Ensure audio context is started
-    startAudio();
-    
-    isPlaying = true;
-    const toggleBtn = document.getElementById('toggleBtn');
-    toggleBtn.textContent = 'Stop';
-    toggleBtn.classList.add('stop');
-    
-    // If we have a current chord, play it
-    if (currentChord) {
-        playChord(currentChord.degrees);
-        
-        // Restart the progression timer
-        progressionTimer = setInterval(() => {
-            if (currentChord) {
-                generateNextChord(progressionHistory);
-            }
-        }, CHORD_DURATION);
-    } else if (progressionHistory) {
-        // If we have history but no current chord, generate a new one based on history
-        generateNextChord(progressionHistory);
-        
-        // Then start the timer
-        progressionTimer = setInterval(() => {
-            generateNextChord(progressionHistory);
-        }, CHORD_DURATION);
-    } else {
-        // If we have neither, start fresh
-        startProgression();
     }
 }
 
@@ -432,3 +529,112 @@ function displayNewChord(chord) {
     document.getElementById('chordName').textContent = chord;
     // Other display code...
 }
+
+// Function to reset all controls to their default values
+function resetControlsToDefaults() {
+    // Reset waveform
+    waveformSelect.value = 'sawtooth';
+    synth.set({
+        oscillator: {
+            type: 'sawtooth'
+        }
+    });
+    
+    // Reset tempo
+    tempoSlider.value = 20;
+    tempoValue.textContent = 20;
+    CHORD_DURATION = Math.round(60000 / 20);
+    
+    // Reset reverb
+    reverbSlider.value = 60;
+    reverbValue.textContent = 60;
+    reverb.wet.value = 0.6;
+    
+    // Reset filter
+    filterSlider.value = 641;
+    filterValue.textContent = 641;
+    filter.frequency.value = 641;
+    
+    // Reset temperature
+    temperatureSlider.value = 1.0;
+    temperatureValue.textContent = '1.0';
+    temperature = 1.0;
+    
+    // Reset octave
+    octaveSlider.value = 0;
+    octaveValue.textContent = '0';
+    octaveShift = 0;
+}
+
+// When the page loads, set the chord name to empty instead of "Press Start to begin"
+document.addEventListener('DOMContentLoaded', function() {
+    resetControlsToDefaults();
+    
+    // Clear the initial text
+    document.getElementById('chordName').textContent = '';
+});
+
+// Function to continue the progression from where it left off
+function continueProgression() {
+    if (isPlaying) return;
+    
+    console.log("Continuing progression with lastPlayedChord:", lastPlayedChord);
+    
+    // Ensure audio context is started
+    startAudio();
+    
+    isPlaying = true;
+    const toggleBtn = document.getElementById('toggleBtn');
+    toggleBtn.textContent = 'Stop';
+    toggleBtn.classList.add('stop');
+    
+    // If we have a stored last played chord, use that
+    if (lastPlayedChord) {
+        // Restore the current chord
+        currentChord = lastPlayedChord;
+        
+        // Display and play the chord
+        displayAndPlayChord(currentChord);
+        
+        // Start the timer for the next chord
+        progressionTimer = setInterval(() => {
+            generateNextChord(progressionHistory);
+        }, CHORD_DURATION);
+    } else if (progressionHistory) {
+        // If we have history but no stored chord, generate a new one
+        generateNextChord(progressionHistory).then(() => {
+            progressionTimer = setInterval(() => {
+                generateNextChord(progressionHistory);
+            }, CHORD_DURATION);
+        });
+    } else {
+        // If we have neither, start fresh
+        startProgression();
+    }
+}
+
+// Completely rewrite the toggle button event listener
+document.getElementById('toggleBtn').addEventListener('click', function() {
+    const buttonText = this.textContent.trim();
+    
+    console.log("Button clicked:", buttonText, "isPlaying:", isPlaying, "hasStarted:", hasStarted);
+    
+    if (buttonText === 'Start') {
+        // Starting fresh
+        if (progressionHistory) {
+            // If we have a custom seed, use it
+            generateFirstChordFromSeed(progressionHistory);
+        } else {
+            // Otherwise start with a random chord
+            startProgression();
+        }
+        hasStarted = true;
+        isPlaying = true;
+    } else if (buttonText === 'Stop') {
+        // Currently playing, so stop
+        stopProgression();
+    } else if (buttonText === 'Continue') {
+        // Currently stopped, so continue
+        continueProgression();
+    }
+});
