@@ -34,18 +34,15 @@
                 </div>
                 
                 <div class="piano-keyboard" id="keyboard">
-                    <!-- Keys will be generated via JavaScript -->
                 </div>
                 
                 <button id="toggleBtn">Start</button>
             </div>
-            
-            <!-- Add the About section here -->
             <div class="about-section">
                 <h2 class="about-title">About Genbient</h2>
                 
                 <div class="about-content">
-                    <p>Genbient is an AI-powered ambient music generator that creates endless, evolving chord progressions. It combines deep learning with interactive visualization to create a unique musical experience.</p>
+                    <p>Genbient is an AI-powered ambient soundscape generator that creates endless, evolving harmonies. It combines deep learning with generative art to create a unique musical experience.</p>
                     
                     <div class="about-features">
                         <div class="feature">
@@ -65,7 +62,7 @@
                         
                         <div class="feature">
                             <h3>Custom Seeds</h3>
-                            <p>Start with your own chord progression by entering a custom seed. Genbient will use your input as a starting point and continue the musical journey from there, allowing for endless variations on your favorite progressions.</p>
+                            <p>Start with your own chord progression by entering a custom seed. Genbient will use your input as a starting point and continue the musical journey from there, generating endless variations on your favorite progressions.</p>
                         </div>
                     </div>
                     
@@ -74,7 +71,7 @@
                         <ol>
                             <li><strong>Start/Stop/Continue:</strong> Use the main button to control playback. Unfortunately, due to the cold start time of an API call, it may take some time to start playing.</li>
                             <li><strong>Custom Seeds:</strong> Enter your own chord progression in the sidebar and click Apply to use it as a starting point. Important: the seed chords must be separated by spaces, and the chords must be present in the model's <a href="https://github.com/akzmuk/chordgen/blob/main/app/chord_vocab.txt">vocabulary</a>.</li>
-                            <li><strong>Temperature:</strong> Lower values (0.1-0.1.0) create more predictable progressions, while higher values (1.1-2.0) produce more experimental results.</li>
+                            <li><strong>Temperature:</strong> Lower values (0.1-0.1.0) create more predictable progressions, while higher values (1.1-2.0) produce more experimental results. If you feel like the model is getting stuck in a loop, try increasing the temperature.</li>
                             <li><strong>Adjust Sound:</strong> Open the sidebar to access controls for waveform, octave, tempo, reverb, and filter settings.</li>
                         </ol>
                     </div>
@@ -86,7 +83,7 @@
                             <li><strong>Frontend:</strong> HTML, CSS, JavaScript</li>
                             <li><strong>Audio:</strong> Tone.js for sound synthesis and audio processing</li>
                             <li><strong>Visualization:</strong> p5.js for the interactive visual elements</li>
-                            <li><strong>Backend:</strong> Custom <a href="https://github.com/akzmuk/chordgen">Transformer model</a> trained on large amounts of chord progressions</li>
+                            <li><strong>Backend:</strong> Custom generative <a href="https://github.com/akzmuk/chordgen">Transformer model</a> trained on large amounts of chord progressions data</li>
                         </ul>
                     </div>
                     
@@ -136,7 +133,7 @@
                     
                     <div class="control-group">
                         <label for="tempoSlider">Tempo: <span id="tempoValue" class="value-display">20</span> BPM</label>
-                        <input type="range" id="tempoSlider" min="10" max="60" value="20" class="slider">
+                        <input type="range" id="tempoSlider" min="10" max="40" value="20" class="slider">
                     </div>
                     
                     <div class="control-group">
