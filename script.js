@@ -2,6 +2,49 @@
 const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const keyboard = document.getElementById('keyboard');
 
+// Setup theme toggle
+const themeToggle = document.getElementById('themeToggle');
+const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+// Check for saved theme preference or use system preference
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'dark' || (!savedTheme && prefersDarkScheme.matches)) {
+    document.body.classList.add('dark-mode');
+    themeToggle.textContent = '◑';
+}
+
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    themeToggle.textContent = isDarkMode ? '◑' : '◐';
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+});
+
+// Setup copy history button
+const copyHistoryBtn = document.getElementById('copyHistoryBtn');
+const copyNotification = document.getElementById('copyNotification');
+
+copyHistoryBtn.addEventListener('click', async () => {
+    if (!progressionHistory) {
+        copyNotification.textContent = 'No history to copy';
+        copyNotification.classList.add('show');
+        setTimeout(() => copyNotification.classList.remove('show'), 2000);
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(progressionHistory);
+        copyNotification.textContent = 'Copied to clipboard!';
+        copyNotification.classList.add('show');
+        setTimeout(() => copyNotification.classList.remove('show'), 2000);
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+        copyNotification.textContent = 'Failed to copy';
+        copyNotification.classList.add('show');
+        setTimeout(() => copyNotification.classList.remove('show'), 2000);
+    }
+});
+
 // Create a simple one-octave keyboard
 for (let i = 0; i < 12; i++) {
     const isBlack = [1, 3, 6, 8, 10].includes(i);

@@ -5,13 +5,97 @@ body {
     background-color: #f5f5f5;
     color: #333;
     min-height: 100vh;
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #ffffff;
+}
+
+body.dark-mode .container,
+body.dark-mode .sidebar,
+body.dark-mode .about-section,
+body.dark-mode .feature {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+body.dark-mode .header {
+    background-color: #089673;
+}
+
+/* Preserve teal color for accent elements in dark mode */
+body.dark-mode .section-title,
+body.dark-mode .about-title,
+body.dark-mode .feature h3,
+body.dark-mode .about-how-to-use h3,
+body.dark-mode .about-tech h3,
+body.dark-mode .value-display,
+body.dark-mode .about-footer a,
+body.dark-mode a {
+    color: #089673;
+}
+
+/* Make all other text white in dark mode */
+body.dark-mode .control-group label,
+body.dark-mode .about-content,
+body.dark-mode .about-content > p:first-child,
+body.dark-mode .about-how-to-use,
+body.dark-mode .about-tech,
+body.dark-mode .about-footer,
+body.dark-mode .expander-toggle,
+body.dark-mode .sidebar-title,
+body.dark-mode .chord-name {
+    color: #ffffff;
+}
+
+body.dark-mode .control-group input[type="range"] {
+    background: #444;
+}
+
+body.dark-mode .control-group select {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border-color: #444;
+}
+
+body.dark-mode .about-how-to-use {
+    background-color: #2d2d2d;
+    border-left: 4px solid #089673;
+}
+
+body.dark-mode .about-tech li {
+    background-color: #444;
+    color: #ffffff;
+}
+
+body.dark-mode .expander-toggle {
+    background-color: #2d2d2d;
+    color: #ffffff;
+}
+
+body.dark-mode .expander-toggle:hover {
+    background-color: #444;
+}
+
+body.dark-mode .expander-content {
+    border-left: 2px solid #444;
+}
+
+body.dark-mode .close-sidebar {
+    color: #ffffff;
+}
+
 .header {
     background-color: #089673;
     padding: 10px 0;
     color: #f5f5f5;
     width: 100%;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
 }
 .header-content {
     max-width: 1300px;
@@ -36,15 +120,21 @@ body {
     font-size: 24px;
     cursor: pointer;
     padding: 5px;
-    padding-right: 0;
-    margin-right: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
 }
 .sidebar-toggle:hover {
     transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+.sidebar-toggle:active {
+    transform: scale(0.95);
 }
 .main-wrapper {
     display: flex;
@@ -52,6 +142,7 @@ body {
     margin: 0 auto;
     position: relative;
     min-height: calc(100vh - 60px);
+    padding-top: 60px;
 }
 .main-content {
     flex: 1;
@@ -200,6 +291,55 @@ button#toggleBtn.stop:hover {
     display: grid;
     grid-template-columns: 1fr;
     gap: 25px;
+}
+.copy-history-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+.copy-history-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #089673;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.copy-history-btn:hover {
+    background-color: #067a5f;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+}
+.copy-history-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.copy-icon {
+    font-size: 16px;
+}
+.copy-notification {
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+.copy-notification.show {
+    opacity: 1;
 }
 .control-group {
     margin-bottom: 15px;
@@ -632,4 +772,48 @@ button#toggleBtn.stop:hover {
     padding-bottom: 0;
     margin-top: 0;
     margin-bottom: 0;
+}
+
+.header-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.theme-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Make all links teal colored */
+a {
+    color: #089673;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #067a5f;
+    text-decoration: underline;
 }

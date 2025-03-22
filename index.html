@@ -10,13 +10,16 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit&family=Rubik+80s+Fade&family=Rubik+Broken+Fax&family=Rubik+Pixels&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="header">
         <div class="header-content">
             <div class="logo">Genbient</div>
-            <button class="sidebar-toggle" id="sidebarToggle">☰</button>
+            <div class="header-controls">
+                <button class="theme-toggle" id="themeToggle">◐</button>
+                <button class="sidebar-toggle" id="sidebarToggle">⋮</button>
+            </div>
         </div>
     </div>
     <div class="main-wrapper">
@@ -69,7 +72,7 @@
                     <div class="about-how-to-use">
                         <h3>How to Use</h3>
                         <ol>
-                            <li><strong>Start/Stop/Continue:</strong> Use the main button to control playback. Unfortunately, due to the cold start time of an API call, it may take some time to start playing.</li>
+                            <li><strong>Start/Stop/Continue:</strong> Use the main button to control playback. Unfortunately, due to the cold start of an <a href="https://chordgen-uxfa.onrender.com/">API</a> call, it may take some time to start playing.</li>
                             <li><strong>Custom Seeds:</strong> Enter your own chord progression in the sidebar and click Apply to use it as a starting point. Important: the seed chords must be separated by spaces, and the chords must be present in the model's <a href="https://github.com/akzmuk/chordgen/blob/main/app/chord_vocab.txt">vocabulary</a>.</li>
                             <li><strong>Temperature:</strong> Lower values (0.1-0.1.0) create more predictable progressions, while higher values (1.1-2.0) produce more experimental results. If you feel like the model is getting stuck in a loop, try increasing the temperature.</li>
                             <li><strong>Adjust Sound:</strong> Open the sidebar to access controls for waveform, octave, tempo, reverb, and filter settings.</li>
@@ -99,6 +102,13 @@
                 <button class="close-sidebar" id="closeSidebar">✕</button>
             </div>
             <div class="controls-panel">
+                <div class="copy-history-container">
+                    <button id="copyHistoryBtn" class="copy-history-btn">
+                        <span class="copy-icon">📋</span>
+                        Copy Progression History
+                    </button>
+                    <div id="copyNotification" class="copy-notification">Copied to clipboard!</div>
+                </div>
                 <div class="controls-section">
                     <h3 class="section-title">Generation Controls</h3>
                     <div class="control-group seed-control">
